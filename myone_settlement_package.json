@@ -1,0 +1,210 @@
+{
+  "company": {
+    "id": "myone",
+    "name": "MyOne",
+    "legalName": "MyOne Electronics Industries Ltd. (Minister-MyOne Group)",
+    "website": "https://ministerbd.com/",
+    "hotline": "09606 700 700",
+    "email": "info@ministerbd.com",
+    "role": "Supplier / Brand",
+    "brandMatch": [
+      "myone"
+    ],
+    "supplierMatch": [
+      "MyOne"
+    ]
+  },
+  "summary": {
+    "purchaseCount": 0,
+    "totalBilled": 0,
+    "totalPaid": 0,
+    "totalDue": 0,
+    "productCount": 14
+  },
+  "purchases": [],
+  "products": [
+    {
+      "id": "p14",
+      "sku": "MY--EK1.8",
+      "name": "Myone Electric Kettle",
+      "category": "ELECTRIC KETTLE",
+      "brand": "MyOne",
+      "warranty": "12 মাস (MINISTER)",
+      "cost": 790.0,
+      "price": 1495.0,
+      "stock": 0.0,
+      "alertQty": 2,
+      "inactive": false
+    },
+    {
+      "id": "p16",
+      "sku": "MYF56",
+      "name": "Myone Celling Fan 56\"",
+      "category": "Fan",
+      "brand": "MyOne",
+      "warranty": "7 বছর (MyOne)",
+      "cost": 3490.0,
+      "price": 3650.0,
+      "stock": 1.0,
+      "alertQty": 2,
+      "inactive": false
+    },
+    {
+      "id": "p127",
+      "sku": "MYRF14",
+      "name": "Myone Rechargeable Fan 14 Inch",
+      "category": "Rechargeable Fan",
+      "brand": "MyOne",
+      "warranty": "Official Warranty",
+      "cost": 4190.0,
+      "price": 5151.0,
+      "stock": 0.0,
+      "alertQty": 2,
+      "inactive": false
+    },
+    {
+      "id": "p128",
+      "sku": "MYRF12",
+      "name": "Myone Rechargeable Fan 12 Inch",
+      "category": "Rechargeable Fan",
+      "brand": "MyOne",
+      "warranty": "Official Warranty",
+      "cost": 3290.0,
+      "price": 4362.5,
+      "stock": 3.0,
+      "alertQty": 2,
+      "inactive": false
+    },
+    {
+      "id": "p135",
+      "sku": "MY-3AXG MAGNI",
+      "name": "MY-3AXG MAGNIFICENT RED BLACK MATCH",
+      "category": "Refrigerator",
+      "brand": "MyOne",
+      "warranty": "12 বছর (Minister)",
+      "cost": 35805.0,
+      "price": 47204.0,
+      "stock": 0.0,
+      "alertQty": 2,
+      "inactive": false
+    },
+    {
+      "id": "p137",
+      "sku": "MY-302",
+      "name": "MyOne Refrigerator",
+      "category": "Refrigerator",
+      "brand": "MyOne",
+      "warranty": "12 বছর (Minister)",
+      "cost": 30030.0,
+      "price": 48690.0,
+      "stock": 0.0,
+      "alertQty": 2,
+      "inactive": false
+    },
+    {
+      "id": "p155",
+      "sku": "MY-1F5G DAHLIA",
+      "name": "MY-1F5G DAHLIA BLACK MATCH",
+      "category": "Refrigerator",
+      "brand": "MyOne",
+      "warranty": "12 বছর (Minister)",
+      "cost": 31.0,
+      "price": 33753.0,
+      "stock": 0.0,
+      "alertQty": 2,
+      "inactive": false
+    },
+    {
+      "id": "p162",
+      "sku": "Myone 2E5G Daisy",
+      "name": "Myone 2E5G Daisy",
+      "category": "Refrigerator",
+      "brand": "MyOne",
+      "warranty": "12 বছর (Minister)",
+      "cost": 28200.0,
+      "price": 39802.0,
+      "stock": 1.0,
+      "alertQty": 2,
+      "inactive": false
+    },
+    {
+      "id": "p170",
+      "sku": "MY-1F5G GORGEOUS",
+      "name": "MY-1F5G GORGEOUS TULIP BLACK MATCH",
+      "category": "Refrigerator",
+      "brand": "MyOne",
+      "warranty": "12 বছর (Minister)",
+      "cost": 32490.0,
+      "price": 34935.0,
+      "stock": 1.0,
+      "alertQty": 2,
+      "inactive": false
+    },
+    {
+      "id": "p190",
+      "sku": "MY-1G5G DAISY",
+      "name": "MY-1G5G RED DAISY BLACK MATCH",
+      "category": "Refrigerator",
+      "brand": "MyOne",
+      "warranty": "12 বছর (Minister)",
+      "cost": 21500.0,
+      "price": 38914.0,
+      "stock": 1.0,
+      "alertQty": 2,
+      "inactive": false
+    },
+    {
+      "id": "p205",
+      "sku": "MY-2E6G DAHLIA",
+      "name": "MY-256G DAHLIA",
+      "category": "Refrigerator",
+      "brand": "MyOne",
+      "warranty": "12 বছর (Minister)",
+      "cost": 33540.0,
+      "price": 48925.0,
+      "stock": 0.0,
+      "alertQty": 2,
+      "inactive": false
+    },
+    {
+      "id": "p211",
+      "sku": "MYONE MY-1G5G ELEGANT MAGNOLIA",
+      "name": "MY-1G5G ELEGANT MAGNOLIA",
+      "category": "Refrigerator",
+      "brand": "MyOne",
+      "warranty": "12 বছর (Minister)",
+      "cost": 22763.0,
+      "price": 39129.0,
+      "stock": -1.0,
+      "alertQty": 2,
+      "inactive": false
+    },
+    {
+      "id": "p223",
+      "sku": "MY-2E6G COLOURFUL",
+      "name": "MY-256G COLORFUL",
+      "category": "Refrigerator",
+      "brand": "MyOne",
+      "warranty": "12 বছর (Minister)",
+      "cost": 33540.0,
+      "price": 50000.0,
+      "stock": 0.0,
+      "alertQty": 2,
+      "inactive": false
+    },
+    {
+      "id": "p227",
+      "sku": "MY-1F5G MAGNI",
+      "name": "MY-1F5G MAGNIFICENT RED BLACK MATCH",
+      "category": "Refrigerator",
+      "brand": "MyOne",
+      "warranty": "12 বছর (Minister)",
+      "cost": 31.0,
+      "price": 33753.0,
+      "stock": 0.0,
+      "alertQty": 2,
+      "inactive": false
+    }
+  ],
+  "ledgerEntries": []
+}
