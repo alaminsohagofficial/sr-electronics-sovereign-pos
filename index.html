@@ -82,6 +82,7 @@
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #334155; border-radius: 999px; }
     @media print {
+      @page { size: A4; margin: 10mm; }
       body * { visibility: hidden !important; }
       #receiptPrintArea, #receiptPrintArea * { visibility: visible !important; }
       #receiptPrintArea {
@@ -187,6 +188,7 @@
 
         <div class="flex items-center gap-2">
           <span id="headerDateBadge" class="hidden md:inline-block px-2.5 py-1 rounded-lg sr-input text-xs font-semibold"></span>
+          <button id="askGeminiOpenBtn" type="button" class="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition flex items-center gap-1">✨ আমাকে জিজ্ঞাসা করুন</button>
           <button id="calcOpenBtn" type="button" class="px-2.5 py-1.5 rounded-lg sr-input text-xs sm:text-sm font-semibold hover:border-cyan-400 transition" title="Calculator">🧮</button>
           <button id="langToggleBtn" type="button" class="px-2.5 py-1.5 rounded-lg sr-input text-xs font-bold hover:border-amber-400 transition">EN</button>
           <button id="themeToggleBtn" type="button" class="px-2.5 py-1.5 rounded-lg sr-input text-xs sm:text-sm font-semibold hover:border-amber-400 transition" title="Toggle Light/Dark">☀️</button>
@@ -209,6 +211,7 @@
                 <option value="month">এই মাস (This Month)</option>
                 <option value="today">আজ (Today)</option>
               </select>
+              <button id="dashDailyClosingBtn" type="button" class="px-3.5 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white text-xs sm:text-sm font-bold transition">📲 আজকের ক্লোজিং (WhatsApp)</button>
               <button id="dashGoPosBtn" type="button" class="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs sm:text-sm font-bold transition">+ নতুন বিক্রয়</button>
             </div>
           </div>
@@ -231,6 +234,23 @@
           <div class="sr-card rounded-2xl p-4">
             <h3 class="text-sm font-bold mb-3 flex items-center gap-2"><span class="text-cyan-400">📈</span> সাম্প্রতিক বিক্রয় প্রবণতা</h3>
             <div class="relative h-64"><canvas id="chartTrend"></canvas></div>
+          </div>
+
+          <!-- EMI Watchdog & Lock Monitor -->
+          <div class="sr-card rounded-2xl p-4 border-l-4 border-l-amber-400">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <div>
+                <h3 class="text-sm font-extrabold text-amber-400">📅 EMI কিস্তি রিমাইন্ডার ও ডিভাইস লক মনিটর</h3>
+                <p class="text-[11px] text-[var(--text-muted)]">কিস্তির আগে SALSABILAH SMS পাঠান অথবা কিস্তি মিস হলে প্রোডাক্ট লক/আনলক করুন</p>
+              </div>
+              <span id="emiWatchCountBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold">0 EMI</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-xs sm:text-sm text-left">
+                <thead><tr class="border-b border-[var(--border-color)] text-[var(--text-muted)]"><th class="py-2">ইনভয়েস</th><th class="py-2">গ্রাহক</th><th class="py-2 text-right">মাসিক কিস্তি</th><th class="py-2 text-right">বাকি</th><th class="py-2 text-right">অ্যাকশন</th></tr></thead>
+                <tbody id="dashEmiWatchBody"></tbody>
+              </table>
+            </div>
           </div>
 
           <!-- Alerts & Dues -->
@@ -321,9 +341,13 @@
                     <label class="block text-[11px] text-[var(--text-muted)] mb-1">পেমেন্ট মাধ্যম</label>
                     <select id="posPaymentMethod" class="sr-input rounded-lg px-2.5 py-2 w-full text-xs sm:text-sm font-semibold">
                       <option value="Cash">নগদ (Cash)</option>
-                      <option value="bKash">বিকাশ (bKash)</option>
-                      <option value="Nagad">নগদ অ্যাপ (Nagad)</option>
+                      <option value="bKash Merchant">bKash Merchant</option>
+                      <option value="Nagad Merchant">Nagad Merchant</option>
+                      <option value="Pubali Bank POS (MID: 474370027951000)">Pubali Bank POS (MID: 474370027951000)</option>
+                      <option value="DBBL Corporate">DBBL Corporate</option>
+                      <option value="BRAC Bank (Alamdanga EMI)">BRAC Bank (Alamdanga EMI)</option>
                       <option value="Card">ব্যাংক কার্ড</option>
+                      <option value="EMI">কিস্তি (EMI Sale)</option>
                       <option value="Due">বাকি (Credit/Due)</option>
                     </select>
                   </div>
@@ -332,6 +356,42 @@
                     <input id="posPaidInput" type="number" min="0" value="0" class="sr-input rounded-lg px-2.5 py-2 w-full text-right font-bold text-cyan-400" />
                   </div>
                 </div>
+                <!-- EMI Policy & Document Upload Box -->
+                <div id="posEmiBox" class="hidden rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 space-y-2.5 text-xs">
+                  <div class="flex items-center justify-between">
+                    <span class="font-extrabold text-amber-300">📅 EMI কিস্তি ও ডকুমেন্ট আপলোড</span>
+                    <span id="posEmiMonthlyPreview" class="font-extrabold text-cyan-300">৳0/মাস</span>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="block text-[10px] text-[var(--text-muted)] mb-1">কিস্তির মেয়াদ (মাস)</label>
+                      <select id="posEmiMonths" class="sr-input rounded-lg px-2 py-1.5 w-full text-xs font-bold">
+                        <option value="3">3 মাস</option>
+                        <option value="6" selected>6 মাস</option>
+                        <option value="9">9 মাস</option>
+                        <option value="12">12 মাস</option>
+                        <option value="18">18 মাস</option>
+                        <option value="24">24 মাস</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block text-[10px] text-[var(--text-muted)] mb-1">গ্যারান্টারের নাম ও মোবাইল</label>
+                      <input id="posEmiGuarantor" type="text" class="sr-input rounded-lg px-2 py-1.5 w-full text-xs" placeholder="নাম, 017XXXXXXXX" />
+                    </div>
+                  </div>
+                  <div class="flex flex-wrap gap-2 text-[11px]">
+                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" class="emi-doc-chk accent-amber-400" value="গ্রাহকের NID" checked /> গ্রাহকের NID</label>
+                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" class="emi-doc-chk accent-amber-400" value="গ্যারান্টারের NID" /> গ্যারান্টারের NID</label>
+                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" class="emi-doc-chk accent-amber-400" value="ছবি" /> ছবি</label>
+                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" class="emi-doc-chk accent-amber-400" value="ব্যাংক চেক" /> ব্যাংক চেক</label>
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-[var(--text-muted)] mb-1">ডকুমেন্ট ফাইল লোড করুন (NID / ছবি / PDF)</label>
+                    <input id="posEmiDocsInput" type="file" multiple accept="image/*,.pdf" class="sr-input rounded-lg px-2 py-1 w-full text-[11px]" />
+                    <div id="posEmiDocsList" class="mt-1.5 flex flex-wrap gap-1.5"></div>
+                  </div>
+                </div>
+
                 <div class="flex justify-between text-xs font-semibold pt-1">
                   <span id="posBalanceLabel" class="text-[var(--text-muted)]">বাকি / ফেরত:</span>
                   <span id="posBalanceVal">৳0.00</span>
@@ -550,7 +610,10 @@
               <h2 class="text-lg font-extrabold">🏢 কোম্পানি সেটেলমেন্ট ও লেজার (Company Accounts)</h2>
               <p class="text-xs text-[var(--text-muted)]">Minister, MyOne, Butterfly Marketing Limited ও SR Electronics Park-এর হিসাব নিষ্পত্তি ও ডেটা প্যাকেজ</p>
             </div>
-            <button id="openLedgerModalBtn" type="button" class="px-4 py-2 rounded-xl sr-gold-gradient text-slate-950 text-xs sm:text-sm font-extrabold">+ লেজার এন্ট্রি যোগ করুন</button>
+            <div class="flex flex-wrap gap-2">
+              <button id="openCompanyPadBtn" type="button" class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs sm:text-sm font-extrabold">📝 অর্ডার প্যাড (Pad)</button>
+              <button id="openLedgerModalBtn" type="button" class="px-4 py-2 rounded-xl sr-gold-gradient text-slate-950 text-xs sm:text-sm font-extrabold">+ লেজার এন্ট্রি যোগ করুন</button>
+            </div>
           </div>
 
           <div id="settlementCompanyCards" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
@@ -706,23 +769,148 @@
   <div id="contactModal" class="fixed inset-0 bg-black/70 z-50 hidden items-center justify-center p-4">
     <div class="sr-panel rounded-2xl w-full max-w-md p-5 space-y-4">
       <div class="flex items-center justify-between">
-        <h3 class="text-base font-extrabold">নতুন গ্রাহক / সরবরাহকারী</h3>
+        <h3 id="contactModalTitle" class="text-base font-extrabold">নতুন গ্রাহক / সরবরাহকারী</h3>
         <button type="button" data-close-modal="contactModal" class="text-[var(--text-muted)]">✕</button>
       </div>
       <form id="contactForm" class="space-y-3 text-sm">
-        <div>
-          <label class="block text-xs text-[var(--text-muted)] mb-1">ধরণ</label>
-          <select id="conType" class="sr-input rounded-xl px-3 py-2 w-full">
-            <option value="customer">গ্রাহক (Customer)</option>
-            <option value="supplier">সরবরাহকারী (Supplier)</option>
-          </select>
+        <input id="conEditId" type="hidden" />
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-[var(--text-muted)] mb-1">ধরণ</label>
+            <select id="conType" class="sr-input rounded-xl px-3 py-2 w-full">
+              <option value="customer">গ্রাহক (Customer)</option>
+              <option value="supplier">সরবরাহকারী (Supplier)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-[var(--text-muted)] mb-1">গ্রুপ (Group)</label>
+            <input id="conGroup" type="text" class="sr-input rounded-xl px-3 py-2 w-full" placeholder="যেমন: Cash Buyer" />
+          </div>
         </div>
         <div><label class="block text-xs text-[var(--text-muted)] mb-1">নাম *</label><input id="conName" type="text" class="sr-input rounded-xl px-3 py-2 w-full" required /></div>
-        <div><label class="block text-xs text-[var(--text-muted)] mb-1">মোবাইল নম্বর *</label><input id="conPhone" type="text" class="sr-input rounded-xl px-3 py-2 w-full" required /></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-xs text-[var(--text-muted)] mb-1">মোবাইল নম্বর *</label><input id="conPhone" type="text" class="sr-input rounded-xl px-3 py-2 w-full" required /></div>
+          <div><label class="block text-xs text-[var(--text-muted)] mb-1">বকেয়া (Due ৳)</label><input id="conDue" type="number" step="0.01" min="0" value="0" class="sr-input rounded-xl px-3 py-2 w-full text-right font-bold" /></div>
+        </div>
         <div><label class="block text-xs text-[var(--text-muted)] mb-1">ঠিকানা</label><input id="conAddr" type="text" class="sr-input rounded-xl px-3 py-2 w-full" /></div>
         <div class="flex justify-end gap-2 pt-2">
           <button type="button" data-close-modal="contactModal" class="px-4 py-2 rounded-xl sr-input text-xs font-bold">বাতিল</button>
-          <button type="submit" class="px-4 py-2 rounded-xl bg-cyan-600 text-white text-xs font-bold">যোগ করুন</button>
+          <button id="contactSubmitBtn" type="submit" class="px-4 py-2 rounded-xl bg-cyan-600 text-white text-xs font-bold">যোগ করুন</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Edit Sale / Invoice -->
+  <div id="editSaleModal" class="fixed inset-0 bg-black/70 z-50 hidden items-center justify-center p-4">
+    <div class="sr-panel rounded-2xl w-full max-w-md p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-extrabold text-cyan-400">✏️ বিক্রয় / ইনভয়েস সংশোধন</h3>
+        <button type="button" data-close-modal="editSaleModal" class="text-[var(--text-muted)]">✕</button>
+      </div>
+      <form id="editSaleForm" class="space-y-3 text-sm">
+        <input id="editSaleOrigId" type="hidden" />
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-xs text-[var(--text-muted)] mb-1">ইনভয়েস নং</label><input id="editSaleIdView" type="text" class="sr-input rounded-xl px-3 py-2 w-full font-bold text-cyan-400" readonly /></div>
+          <div><label class="block text-xs text-[var(--text-muted)] mb-1">তারিখ</label><input id="editSaleDate" type="date" class="sr-input rounded-xl px-3 py-2 w-full" required /></div>
+        </div>
+        <div><label class="block text-xs text-[var(--text-muted)] mb-1">গ্রাহকের নাম *</label><input id="editSaleCustomer" type="text" class="sr-input rounded-xl px-3 py-2 w-full" required /></div>
+        <div class="grid grid-cols-3 gap-2">
+          <div>
+            <label class="block text-xs text-[var(--text-muted)] mb-1">মাধ্যম</label>
+            <select id="editSaleMethod" class="sr-input rounded-xl px-2 py-2 w-full text-xs">
+              <option value="Cash">Cash</option>
+              <option value="bKash Merchant">bKash Merchant</option>
+              <option value="Nagad Merchant">Nagad Merchant</option>
+              <option value="Pubali Bank POS (MID: 474370027951000)">Pubali Bank POS (MID: 474370027951000)</option>
+              <option value="DBBL Corporate">DBBL Corporate</option>
+              <option value="BRAC Bank (Alamdanga EMI)">BRAC Bank (Alamdanga EMI)</option>
+              <option value="Card">Card</option>
+              <option value="EMI">EMI</option>
+              <option value="Due">Due</option>
+            </select>
+          </div>
+          <div><label class="block text-xs text-[var(--text-muted)] mb-1">মোট (৳)</label><input id="editSaleTotal" type="number" step="0.01" min="0" class="sr-input rounded-xl px-2 py-2 w-full text-right font-bold" required /></div>
+          <div><label class="block text-xs text-[var(--text-muted)] mb-1">জমা (৳)</label><input id="editSalePaid" type="number" step="0.01" min="0" class="sr-input rounded-xl px-2 py-2 w-full text-right font-bold text-emerald-400" required /></div>
+        </div>
+        <div class="flex justify-between items-center text-xs bg-[var(--bg-input)] px-3 py-2 rounded-xl">
+          <span class="text-[var(--text-muted)]">নতুন বাকি (Due):</span>
+          <span id="editSaleDuePreview" class="font-extrabold text-amber-400">৳0</span>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" data-close-modal="editSaleModal" class="px-4 py-2 rounded-xl sr-input text-xs font-bold">বাতিল</button>
+          <button type="submit" class="px-4 py-2 rounded-xl sr-gold-gradient text-slate-950 text-xs font-extrabold">আপডেট সেভ করুন</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Receive Payment & Money Receipt -->
+  <div id="receivePayModal" class="fixed inset-0 bg-black/70 z-50 hidden items-center justify-center p-4">
+    <div class="sr-panel rounded-2xl w-full max-w-md p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-extrabold text-emerald-400">💳 পেমেন্ট রিসিভ ও মানি রিসিট</h3>
+        <button type="button" data-close-modal="receivePayModal" class="text-[var(--text-muted)]">✕</button>
+      </div>
+      <form id="receivePayForm" class="space-y-3 text-sm">
+        <input id="recPayMode" type="hidden" />
+        <input id="recPayTargetId" type="hidden" />
+        <div class="bg-[var(--bg-input)] p-3 rounded-xl text-xs space-y-1">
+          <div class="font-bold text-cyan-400" id="recPayCustomerLabel">-</div>
+          <div class="text-[var(--text-muted)]">বর্তমান বকেয়া: <strong id="recPayDueLabel" class="text-amber-400">৳0</strong></div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-xs text-[var(--text-muted)] mb-1">আদায় টাকা (৳) *</label><input id="recPayAmount" type="number" step="0.01" min="0.01" class="sr-input rounded-xl px-3 py-2 w-full text-right font-bold text-emerald-400" required /></div>
+          <div>
+            <label class="block text-xs text-[var(--text-muted)] mb-1">পেমেন্ট মাধ্যম</label>
+            <select id="recPayMethod" class="sr-input rounded-xl px-2.5 py-2 w-full text-xs font-semibold">
+              <option value="Cash">নগদ (Cash)</option>
+              <option value="bKash Merchant">bKash Merchant</option>
+              <option value="Nagad Merchant">Nagad Merchant</option>
+              <option value="Pubali Bank POS (MID: 474370027951000)">Pubali Bank POS (MID: 474370027951000)</option>
+              <option value="DBBL Corporate">DBBL Corporate</option>
+              <option value="BRAC Bank (Alamdanga EMI)">BRAC Bank (Alamdanga EMI)</option>
+              <option value="Card">ব্যাংক কার্ড</option>
+            </select>
+          </div>
+        </div>
+        <div><label class="block text-xs text-[var(--text-muted)] mb-1">TrxID / রেফারেন্স (ঐচ্ছিক)</label><input id="recPayRef" type="text" class="sr-input rounded-xl px-3 py-2 w-full" placeholder="যেমন: bKash TrxID বা রিসিট নং" /></div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" data-close-modal="receivePayModal" class="px-4 py-2 rounded-xl sr-input text-xs font-bold">বাতিল</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold">পেমেন্ট রিসিভ ও রিসিট দেখুন</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: SR Electronics Park Official Order Pad -->
+  <div id="companyPadModal" class="fixed inset-0 bg-black/70 z-50 hidden items-center justify-center p-4">
+    <div class="sr-panel rounded-2xl w-full max-w-lg p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-extrabold text-amber-400">📝 SR Electronics Park — অফিসিয়াল অর্ডার প্যাড</h3>
+        <button type="button" data-close-modal="companyPadModal" class="text-[var(--text-muted)]">✕</button>
+      </div>
+      <form id="companyPadForm" class="space-y-3 text-sm">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-[var(--text-muted)] mb-1">প্রাপক কোম্পানি</label>
+            <select id="padCompanySelect" class="sr-input rounded-xl px-3 py-2 w-full text-xs font-semibold">
+              <option value="Minister Hi-Tech Park Electronics Ltd. (DEAL002905)">Minister Hi-Tech Park (DEAL002905)</option>
+              <option value="MyOne Electronics Industries Ltd. (DEAL002905)">MyOne Electronics (DEAL002905)</option>
+              <option value="Butterfly Marketing Limited (Customer ID: 3000002272)">Butterfly Marketing Ltd. (3000002272)</option>
+              <option value="Other Supplier / Distributor">অন্যান্য সরবরাহকারী</option>
+            </select>
+          </div>
+          <div><label class="block text-xs text-[var(--text-muted)] mb-1">অর্ডার রেফারেন্স নং</label><input id="padRefNo" type="text" class="sr-input rounded-xl px-3 py-2 w-full text-xs font-bold" /></div>
+        </div>
+        <div><label class="block text-xs text-[var(--text-muted)] mb-1">বিষয় (Subject)</label><input id="padSubject" type="text" class="sr-input rounded-xl px-3 py-2 w-full text-xs" value="Product Purchase Order / Stock Lifting Requisition" required /></div>
+        <div>
+          <label class="block text-xs text-[var(--text-muted)] mb-1">পণ্যের তালিকা (প্রতি লাইনে: পণ্যের নাম | সংখ্যা | মন্তব্য)</label>
+          <textarea id="padItemsText" rows="5" class="sr-input rounded-xl px-3 py-2 w-full text-xs font-mono" placeholder="Minister Refrigerator M-254 EL | 10 | Cash Lifting&#10;EcoPlus 43&quot; Smart TV | 5 | Urgent Dispatch" required></textarea>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" data-close-modal="companyPadModal" class="px-4 py-2 rounded-xl sr-input text-xs font-bold">বাতিল</button>
+          <button type="submit" class="px-4 py-2 rounded-xl sr-gold-gradient text-slate-950 text-xs font-extrabold">📄 প্যাড প্রিভিউ ও প্রিন্ট</button>
         </div>
       </form>
     </div>
@@ -738,6 +926,9 @@
       </div>
       <div id="receiptPrintArea" class="bg-white text-slate-900 rounded-xl p-4 text-xs space-y-2"></div>
       <div class="flex flex-wrap justify-end gap-2">
+        <button id="openReceiptAskGeminiBtn" type="button" class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold">✨ আমাকে জিজ্ঞাসা করুন</button>
+        <button id="downloadDigitalInvBtn" type="button" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold">✨ ডিজিটাল ইনভয়েস (Customer HTML)</button>
+        <button id="openReceiptWaBtn" type="button" class="px-3.5 py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white text-xs font-bold">📲 WhatsApp</button>
         <button id="openReceiptSmsBtn" type="button" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold">📩 SMS (SALSABILAH)</button>
         <button type="button" data-close-modal="receiptModal" class="px-4 py-2 rounded-xl sr-input text-xs font-bold">বন্ধ করুন</button>
         <button id="printReceiptBtn" type="button" class="px-4 py-2 rounded-xl sr-gold-gradient text-slate-950 text-xs font-extrabold">🖨️ প্রিন্ট করুন</button>
@@ -866,6 +1057,32 @@
     </div>
   </div>
 
+  <!-- MODAL: Ask Gemini (Product & EMI Assistant) -->
+  <div id="askGeminiModal" class="fixed inset-0 bg-black/75 z-50 hidden items-center justify-center p-4">
+    <div class="sr-panel rounded-2xl w-full max-w-lg p-5 space-y-3">
+      <div class="flex items-center justify-between border-b border-[var(--border-color)] pb-2">
+        <div>
+          <h3 class="text-base font-extrabold text-cyan-400">✨ আমাকে জিজ্ঞাসা করুন (Ask Gemini)</h3>
+          <p class="text-[11px] text-[var(--text-muted)]">পণ্যের দাম, স্টক, ওয়ারেন্টি ও EMI কিস্তি/পলিসি সংক্রান্ত যেকোনো প্রশ্ন করুন</p>
+        </div>
+        <button type="button" data-close-modal="askGeminiModal" class="text-[var(--text-muted)]">✕</button>
+      </div>
+      <div id="askGeminiChatBox" class="bg-[var(--bg-input)] rounded-xl p-3 h-56 overflow-y-auto space-y-2 text-xs">
+        <div class="p-2.5 rounded-lg bg-blue-600/20 border border-blue-500/30 text-slate-100">
+          আসসালামু আলাইকুম! আমি Gemini। আপনি কোনো <strong>পণ্যের নাম/মডেল</strong> (যেমন: Refrigerator, TV), <strong>ওয়ারেন্টি</strong>, বা <strong>EMI কিস্তি ও পলিসি</strong> সম্পর্কে জিজ্ঞাসা করতে পারেন।
+        </div>
+      </div>
+      <form id="askGeminiForm" class="flex gap-2">
+        <input id="askGeminiInput" type="text" class="sr-input rounded-xl px-3 py-2 text-xs flex-1" placeholder="যেমন: Minister ফ্রিজের দাম কত? বা EMI নিয়ম কী?" required />
+        <button type="submit" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold">জিজ্ঞাসা করুন</button>
+      </form>
+      <div class="flex justify-between items-center pt-1">
+        <span class="text-[10px] text-[var(--text-muted)]">Salsabilah Sovereign Singularity (Powered by Gemini)</span>
+        <button id="sendAllEmiRemindersBtn" type="button" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold">📩 বকেয়া/EMI রিমাইন্ডার পাঠান (SALSABILAH)</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Container -->
   <div id="toastBox" class="fixed bottom-4 right-4 z-[60] space-y-2 max-w-xs"></div>
 
@@ -896,10 +1113,10 @@
       }
 
       const DEFAULT_INVOICE_LAYOUTS = [
-        { id: 'minister', name: 'Minister', subtitle: 'Exclusive Minister Plaza • Salsabilah Amin Limited', usedIn: 'Salsabilah Amin Limited', isDefault: true },
-        { id: 'myone', name: 'MyOne', subtitle: 'MyOne Electronics • Salsabilah Amin Limited', usedIn: 'SR Electronics Park', isDefault: false },
-        { id: 'butterfly', name: 'Butterfly Marketing Limited', subtitle: 'House of Butterfly • Salsabilah Amin Limited', usedIn: 'SR Electronics Park', isDefault: false },
-        { id: 'sr', name: 'SR Electronics Park', subtitle: 'An Enterprise of Salsabilah Amin Limited', usedIn: 'SR Electronics Park', isDefault: false }
+        { id: 'sr', name: 'SR Electronics Park', subtitle: 'An Enterprise of Salsabilah Amin Limited', usedIn: 'SR Electronics Park', isDefault: true },
+        { id: 'minister', name: 'Minister', subtitle: 'Exclusive Minister Plaza • SR Electronics Park', usedIn: 'Salsabilah Amin Limited', isDefault: false },
+        { id: 'myone', name: 'MyOne', subtitle: 'MyOne Electronics • SR Electronics Park', usedIn: 'SR Electronics Park', isDefault: false },
+        { id: 'butterfly', name: 'Butterfly Marketing Limited', subtitle: 'House of Butterfly • SR Electronics Park', usedIn: 'SR Electronics Park', isDefault: false }
       ];
       let state = loadState();
       if (!state.invoiceLayouts || !state.invoiceLayouts.length) {
@@ -916,6 +1133,7 @@
       if (!state.ledgerEntries || !state.ledgerEntries.length) state.ledgerEntries = JSON.parse(JSON.stringify(OFFICIAL_DEAL002905_LEDGER));
       if (!state.smsConfig) state.smsConfig = { senderId: 'SALSABILAH', apiUrl: '', apiKey: '' };
       let cart = [];
+      let pendingEmiDocs = [];
       let contactFilterType = 'customer';
       let chartCompInst = null, chartDueInst = null, chartTrendInst = null;
       let confirmCallback = null;
@@ -1051,6 +1269,26 @@
           : `<tr><td colspan="4" class="py-4 text-center text-[var(--text-muted)]">কোনো বকেয়া ইনভয়েস নেই</td></tr>`;
 
         renderCharts(totalSales, totalPurchase, totalExpense, totalDue, purchaseDue);
+        const emiRows = state.sales.filter(s => s.method === 'EMI' || s.emi);
+        const emiBadge = document.getElementById('emiWatchCountBadge');
+        if (emiBadge) emiBadge.textContent = `${emiRows.length} EMI`;
+        const emiBody = document.getElementById('dashEmiWatchBody');
+        if (emiBody) {
+          emiBody.innerHTML = emiRows.length ? emiRows.slice(0, 12).map(s => {
+            const locked = !!(s.emi && s.emi.locked);
+            const mAmt = (s.emi && s.emi.monthlyInstallment) ? fmt(s.emi.monthlyInstallment) : fmt(s.due);
+            return `<tr class="border-b border-[var(--border-color)]/60">
+              <td class="py-2 font-bold text-cyan-400">${s.id}</td>
+              <td class="py-2 font-semibold">${s.customerName} ${locked ? '<span class="ml-1 px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 text-[10px] font-bold">🔒 লকড</span>' : '<span class="ml-1 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">সক্রিয়</span>'}</td>
+              <td class="py-2 text-right font-bold text-amber-400">${mAmt}</td>
+              <td class="py-2 text-right font-bold ${s.due > 0 ? 'text-rose-400' : 'text-emerald-400'}">${fmt(s.due)}</td>
+              <td class="py-2 text-right space-x-1 whitespace-nowrap">
+                <button type="button" data-emi-sms="${s.id}" class="px-2 py-1 rounded bg-emerald-600 text-white text-xs font-bold">📩 SMS</button>
+                <button type="button" data-emi-lock="${s.id}" class="px-2 py-1 rounded ${locked ? 'bg-cyan-600' : 'bg-rose-600'} text-white text-xs font-bold">${locked ? '🔓 আনলক' : '🔒 লক'}</button>
+              </td>
+            </tr>`;
+          }).join('') : '<tr><td colspan="5" class="py-4 text-center text-xs text-[var(--text-muted)]">এখনো কোনো EMI কিস্তি বিক্রয় নেই — POS থেকে কিস্তি (EMI Sale) করলে এখানে দেখাবে।</td></tr>';
+        }
       }
 
       function renderCharts(totalSales = 0, totalPurchase = 0, totalExpense = 0, custDue = 0, suppDue = 0) {
@@ -1207,7 +1445,7 @@
         const method = document.getElementById('posPaymentMethod').value;
         const paidEl = document.getElementById('posPaidInput');
         if (syncPaid) {
-          paidEl.value = method === 'Due' ? 0 : grandTotal;
+          paidEl.value = (method === 'Due' || method === 'EMI') ? Math.round(grandTotal * (method === 'EMI' ? 0.3 : 0)) : grandTotal;
         }
         const paid = Math.max(0, Number(paidEl.value || 0));
         const diff = grandTotal - paid;
@@ -1221,6 +1459,15 @@
           lbl.textContent = 'ফেরত (Change):';
           val.textContent = fmt(Math.abs(diff));
           val.className = 'text-emerald-400 font-bold';
+        }
+        const emiBox = document.getElementById('posEmiBox');
+        if (emiBox) {
+          emiBox.classList.toggle('hidden', method !== 'EMI');
+          const months = Math.max(1, Number(document.getElementById('posEmiMonths')?.value || 6));
+          const emiDue = Math.max(0, diff);
+          const monthly = emiDue > 0 ? (emiDue / months) : 0;
+          const prevEl = document.getElementById('posEmiMonthlyPreview');
+          if (prevEl) prevEl.textContent = `${fmt(monthly)}/মাস (${months} কিস্তি)`;
         }
         return { subtotal, discount, vat, grandTotal, paid: Math.min(grandTotal, paid), due: Math.max(0, diff), method };
       }
@@ -1240,6 +1487,18 @@
           cust.due = (cust.due || 0) + totals.due;
         }
 
+        let emiData = null;
+        if (totals.method === 'EMI') {
+          const months = Math.max(1, Number(document.getElementById('posEmiMonths')?.value || 6));
+          const checkedDocs = [...document.querySelectorAll('.emi-doc-chk:checked')].map(el => el.value);
+          emiData = {
+            months,
+            monthlyInstallment: totals.due > 0 ? Number((totals.due / months).toFixed(2)) : 0,
+            guarantor: (document.getElementById('posEmiGuarantor')?.value || '').trim(),
+            checklist: checkedDocs,
+            files: pendingEmiDocs.map(d => ({ name: d.name, thumb: d.thumb || '' }))
+          };
+        }
         const invId = 'INV-' + (1001 + state.sales.length);
         const saleObj = {
           id: invId,
@@ -1254,11 +1513,15 @@
           paid: totals.paid,
           due: totals.due,
           method: totals.method,
-          layoutId: (document.getElementById('posInvoiceLayoutSelect') && document.getElementById('posInvoiceLayoutSelect').value) || 'minister'
+          emi: emiData,
+          layoutId: (document.getElementById('posInvoiceLayoutSelect') && document.getElementById('posInvoiceLayoutSelect').value) || 'sr'
         };
         state.sales.unshift(saleObj);
         saveState();
         cart = [];
+        pendingEmiDocs = [];
+        if (document.getElementById('posEmiDocsInput')) document.getElementById('posEmiDocsInput').value = '';
+        if (document.getElementById('posEmiDocsList')) document.getElementById('posEmiDocsList').innerHTML = '';
         renderPOS();
         showToast(`ইনভয়েস ${invId} সফলভাবে সম্পন্ন হয়েছে!`);
         showReceipt(saleObj);
@@ -1274,28 +1537,115 @@
           sw.innerHTML = state.invoiceLayouts.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
           sw.value = lay.id;
         }
+        const custObj = state.contacts.find(c => c.id === sale.customerId || c.name === sale.customerName) || {};
+        const custPhone = custObj.phone || '-';
         const html = `
-          <div class="text-center border-b border-slate-300 pb-2 mb-2">
-            <div class="text-base font-extrabold">${lay.name}</div>
-            <div class="text-[11px] text-slate-600">${lay.subtitle}</div>
-            <div class="text-[11px] mt-1">ইনভয়েস: <strong>${sale.id}</strong> | তারিখ: ${sale.date}</div>
-          </div>
-          <div class="mb-2">গ্রাহক: <strong>${sale.customerName}</strong></div>
-          <table class="w-full border-y border-slate-300 my-2 text-left">
-            <thead><tr class="border-b border-slate-200"><th class="py-1">পণ্য</th><th class="py-1 text-center">Qty</th><th class="py-1 text-right">মোট</th></tr></thead>
-            <tbody>
-              ${sale.items.map(i => `<tr><td class="py-1">${i.name}</td><td class="py-1 text-center">${i.qty}</td><td class="py-1 text-right">${fmt(i.price * i.qty)}</td></tr>`).join('')}
-            </tbody>
-          </table>
-          <div class="space-y-1 text-right">
-            <div>সাবটোটাল: ${fmt(sale.subtotal)}</div>
-            <div>ছাড়: -${fmt(sale.discount)}</div>
-            <div>ভ্যাট: ${fmt(sale.vat)}</div>
-            <div class="text-sm font-extrabold border-t border-slate-300 pt-1">সর্বমোট: ${fmt(sale.total)}</div>
-            <div>জমা (${sale.method}): ${fmt(sale.paid)} | বাকি: ${fmt(sale.due)}</div>
-          </div>
-          <div class="text-center text-[10px] text-slate-500 border-t border-slate-200 pt-2 mt-3">
-            ধন্যবাদ! • Powered by Gemini
+          <div style="font-family:Inter,'Noto Sans Bengali',sans-serif;color:#0f172a;">
+            <div style="height:4px;display:flex;border-radius:4px 4px 0 0;overflow:hidden;margin-bottom:10px;"><span style="flex:1;background:#4285F4;"></span><span style="flex:1;background:#EA4335;"></span><span style="flex:1;background:#FBBC05;"></span><span style="flex:1;background:#34A853;"></span></div>
+            <div style="background:#ffffff;color:#202124;padding:8px 4px 10px 4px;border-bottom:1.5px solid #dadce0;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <svg viewBox="0 0 64 64" width="44" height="44" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="srGold3D" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FEF08A"/>
+      <stop offset="45%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#92400E"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#090d16" stroke="#22d3ee" stroke-width="2"/>
+  <rect x="6" y="6" width="52" height="52" rx="11" fill="none" stroke="url(#srGold3D)" stroke-width="2.5"/>
+  <text x="32" y="42" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="25" fill="url(#srGold3D)" letter-spacing="-1">SR</text>
+</svg>
+                <div>
+                  <div style="font-size:16px;font-weight:700;color:#202124;line-height:1.15;">${lay.name}</div>
+                  <div style="font-size:10px;font-weight:600;color:#1a73e8;">${lay.subtitle}</div>
+                  <div style="font-size:8.8px;color:#5f6368;margin-top:2px;">Salsabilah Sovereign Singularity, Hatboalia Bazar, Alamdanga, Chuadanga-7210<br/>Mobile: 01719732134 | WhatsApp: 01711995940 | TIN: 849302140593 | BIN: 003948211-0201</div>
+                </div>
+              </div>
+              <div style="text-align:right;font-size:10px;flex-shrink:0;">
+                <span style="display:inline-block;background:#e8f0fe;color:#1967d2;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;">INVOICE</span>
+                <div style="margin-top:3px;">নং: <strong>${sale.id}</strong></div>
+                <div>তারিখ: ${sale.date}</div>
+              </div>
+            </div>
+            <div style="background:#fef3c7;color:#78350f;font-size:9px;font-weight:700;padding:4px 10px;display:flex;justify-content:space-between;border:1px solid #e2e8f0;border-top:0;">
+              <span>Authorized Dealer: Minister &amp; MyOne (DEAL002905)</span>
+              <span>Butterfly / LG / ECO+ (3000002272)</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 my-2.5 text-[11px] bg-slate-50 border border-slate-300 rounded-md p-2">
+              <div><span class="text-slate-500">গ্রাহক:</span> <strong>${sale.customerName}</strong><br/><span class="text-slate-500">মোবাইল:</span> <strong>${custPhone}</strong></div>
+              <div class="text-right"><span class="text-slate-500">পেমেন্ট:</span> <strong>${sale.method}</strong><br/><span class="text-slate-500">অবস্থা:</span> <strong class="${sale.due > 0 ? 'text-amber-700' : 'text-emerald-700'}">${sale.due > 0 ? 'বাকি (Due)' : 'পরিশোধিত (Paid)'}</strong></div>
+            </div>
+            <table class="w-full border border-slate-300 my-2 text-left text-[11px]" style="border-collapse:collapse;">
+              <thead>
+                <tr style="background:#0b162a;color:#fff;">
+                  <th class="py-1.5 px-2">#</th>
+                  <th class="py-1.5 px-2">পণ্য / বিবরণ</th>
+                  <th class="py-1.5 px-2 text-center">Qty</th>
+                  <th class="py-1.5 px-2 text-right">দর</th>
+                  <th class="py-1.5 px-2 text-right">মোট</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${sale.items.map((i, idx) => `<tr style="border-bottom:1px solid #e2e8f0;background:${idx % 2 ? '#f8fafc' : '#fff'};"><td class="py-1.5 px-2">${idx + 1}</td><td class="py-1.5 px-2 font-semibold">${i.name}</td><td class="py-1.5 px-2 text-center">${i.qty}</td><td class="py-1.5 px-2 text-right">${fmt(i.price)}</td><td class="py-1.5 px-2 text-right font-bold">${fmt(i.price * i.qty)}</td></tr>`).join('')}
+              </tbody>
+            </table>
+            <div class="grid grid-cols-2 gap-3 mt-2 text-[10px]">
+              <div class="border border-slate-300 rounded-md p-2 bg-slate-50">
+                <div class="font-bold text-slate-900 mb-0.5">Payment &amp; Warranty</div>
+                <div class="text-slate-600">Pubali POS: MID 474370027951000 | DBBL Corporate<br/>100% Authentic Products • Official Brand Warranty</div>
+              </div>
+              <div class="border border-slate-800 rounded-md overflow-hidden text-[11px]">
+                <div class="flex justify-between px-2 py-1 border-b border-slate-200"><span>সাবটোটাল:</span><span>${fmt(sale.subtotal)}</span></div>
+                ${sale.discount > 0 ? `<div class="flex justify-between px-2 py-1 border-b border-slate-200"><span>ছাড়:</span><span>-${fmt(sale.discount)}</span></div>` : ''}
+                ${sale.vat > 0 ? `<div class="flex justify-between px-2 py-1 border-b border-slate-200"><span>ভ্যাট:</span><span>${fmt(sale.vat)}</span></div>` : ''}
+                <div class="flex justify-between px-2 py-1.5 font-extrabold" style="background:#0b162a;color:#fbbf24;"><span>সর্বমোট:</span><span>${fmt(sale.total)}</span></div>
+                <div class="flex justify-between px-2 py-1 bg-amber-50"><span>জমা: <strong class="text-emerald-700">${fmt(sale.paid)}</strong></span><span>বাকি: <strong class="${sale.due > 0 ? 'text-rose-700' : ''}">${fmt(sale.due)}</strong></span></div>
+              </div>
+            </div>
+            ${sale.emi ? `
+            <div style="margin-top:8px;border:1px solid #d97706;background:#fffbeb;border-radius:6px;padding:8px 10px;font-size:10px;color:#0f172a;">
+              <div style="font-weight:800;color:#b45309;margin-bottom:3px;">📅 EMI কিস্তি ও পলিসি (EMI Sale Policy &amp; Schedule)</div>
+              <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:4px;">
+                <span><strong>মেয়াদ:</strong> ${sale.emi.months} মাস</span>
+                <span><strong>মাসিক কিস্তি:</strong> ${fmt(sale.emi.monthlyInstallment)}/মাস</span>
+                <span><strong>গ্যারান্টার:</strong> ${sale.emi.guarantor || '-'}</span>
+              </div>
+              <div style="margin-bottom:4px;"><strong>জমাকৃত ডকুমেন্ট:</strong> ${(sale.emi.checklist || []).map(x => '✓ ' + x).join(' | ') || '-'} ${(sale.emi.files || []).length ? '• ফাইল: ' + sale.emi.files.map(f => f.name).join(', ') : ''}</div>
+              ${(sale.emi.files || []).some(f => f.thumb) ? `<div style="display:flex;gap:6px;margin:4px 0;">${sale.emi.files.filter(f => f.thumb).map(f => `<img src="${f.thumb}" alt="${f.name}" style="height:38px;border:1px solid #cbd5e1;border-radius:4px;" />`).join('')}</div>` : ''}
+              <div style="font-size:9px;color:#475569;border-top:1px dashed #fcd34d;padding-top:3px;line-height:1.35;">
+                <strong>EMI শর্তাবলি ও লক পলিসি:</strong> (১) কিস্তির তারিখের আগে জেমিনি স্বয়ংক্রিয়ভাবে <strong>SALSABILAH</strong> থেকে SMS রিমাইন্ডার পাঠাবে। (২) কিস্তি মিস হলে <strong>কোনো প্রোডাক্ট ব্যবহারযোগ্য থাকবে না (অটো-লক / সার্ভিস বন্ধ)</strong>। (৩) সম্পূর্ণ কিস্তি পরিশোধ না হওয়া পর্যন্ত মালিকানা SR Electronics Park-এর অধীন থাকবে।
+              </div>
+            </div>` : ''}
+            <div class="grid ${sale.emi ? 'grid-cols-3' : 'grid-cols-2'} gap-5 pt-8 pb-1 text-center text-[10px] text-slate-600">
+              <div class="border-t border-slate-400 pt-1">ক্রেতার স্বাক্ষর</div>
+              ${sale.emi ? '<div class="border-t border-slate-400 pt-1">জামিনদারের স্বাক্ষর</div>' : ''}
+              <div class="border-t border-slate-400 pt-1"><strong>MD. AL AMIN SOHAG</strong><br/>CEO • SR Electronics Park</div>
+            </div>
+            <div id="inlineInvoiceGeminiBox" style="margin-top:10px;border:1.5px solid #1a73e8;background:#f8fbff;border-radius:10px;padding:10px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;background:#1a73e8;color:#fff;font-size:12px;">✨</span>
+                  <strong style="font-size:11.5px;color:#174ea6;">আমাকে জিজ্ঞাসা করুন — Gemini Customer Assistant</strong>
+                </div>
+                <span style="font-size:9px;background:#e8f0fe;color:#1967d2;padding:2px 8px;border-radius:999px;font-weight:700;">Live on Invoice</span>
+              </div>
+              <div id="invGeminiAnswer" style="font-size:10px;color:#202124;background:#ffffff;border:1px solid #dadce0;border-radius:8px;padding:7px 9px;margin-bottom:6px;line-height:1.45;">
+                আসসালামু আলাইকুম! আপনার পণ্যের ওয়ারেন্টি, EMI কিস্তি বা পেমেন্ট সম্পর্কে নিচে ক্লিক করে বা লিখে আমাকে জিজ্ঞাসা করুন।
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">
+                <button type="button" data-inv-q="warranty" style="font-size:9.5px;background:#e8f0fe;color:#1967d2;border:1px solid #aecbfa;border-radius:999px;padding:3px 8px;font-weight:600;cursor:pointer;">ওয়ারেন্টি কত দিন?</button>
+                <button type="button" data-inv-q="emi" style="font-size:9.5px;background:#fef7e0;color:#b06000;border:1px solid #fde293;border-radius:999px;padding:3px 8px;font-weight:600;cursor:pointer;">EMI ও লক নিয়ম</button>
+                <button type="button" data-inv-q="pay" style="font-size:9.5px;background:#e6f4ea;color:#137333;border:1px solid #ceead6;border-radius:999px;padding:3px 8px;font-weight:600;cursor:pointer;">পেমেন্ট চ্যানেল</button>
+              </div>
+              <div style="display:flex;gap:5px;">
+                <input id="invGeminiInput" type="text" placeholder="পণ্য বা কিস্তি নিয়ে প্রশ্ন লিখুন..." style="flex:1;border:1px solid #dadce0;border-radius:8px;padding:5px 8px;font-size:10px;color:#202124;background:#fff;" />
+                <button id="invGeminiSendBtn" type="button" style="background:#1a73e8;color:#fff;border:none;border-radius:8px;padding:5px 10px;font-size:10px;font-weight:700;cursor:pointer;">জিজ্ঞাসা</button>
+              </div>
+            </div>
+            <div class="text-center text-[9.5px] font-bold text-blue-700 border-t border-slate-200 pt-2 mt-2">
+              Salsabilah Sovereign Singularity (Powered by Gemini)
+            </div>
           </div>
         `;
         document.getElementById('receiptPrintArea').innerHTML = html;
@@ -1353,6 +1703,7 @@
             <td class="py-2.5 px-2 text-right ${s.due > 0 ? 'text-rose-400 font-bold' : 'text-[var(--text-muted)]'}">${fmt(s.due)}</td>
             <td class="py-2.5 px-2 text-right space-x-1">
               ${s.due > 0 ? `<button type="button" data-collect-sale="${s.id}" class="px-2 py-1 rounded bg-amber-500/20 text-amber-300 text-xs font-bold">আদায়</button>` : ''}
+              <button type="button" data-edit-sale="${s.id}" class="px-2 py-1 rounded bg-slate-600 hover:bg-slate-500 text-white text-xs font-bold">✏️ এডিট</button>
               <button type="button" data-sms-sale="${s.id}" class="px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 text-xs font-bold">📩 SMS</button>
               <button type="button" data-view-sale="${s.id}" class="px-2 py-1 rounded bg-cyan-500/20 text-cyan-300 text-xs font-bold">রসিদ</button>
             </td>
@@ -1423,7 +1774,8 @@
             <td class="py-2.5 px-2 text-[var(--text-muted)]">${c.address || '-'}</td>
             <td class="py-2.5 px-2 text-right font-bold ${c.due > 0 ? 'text-amber-400' : 'text-emerald-400'}">${fmt(c.due || 0)}</td>
             <td class="py-2.5 px-2 text-right space-x-1 whitespace-nowrap">
-              ${c.due > 0 ? `<button type="button" data-sms-contact="${c.id}" class="px-2 py-1 rounded bg-emerald-600 text-white text-xs font-bold">📩 SMS</button><button type="button" data-settle-contact="${c.id}" class="px-2.5 py-1 rounded bg-cyan-600 text-white text-xs font-bold">বকেয়া পরিশোধ</button>` : '<span class="text-xs text-[var(--text-muted)]">ক্লিয়ার</span>'}
+              <button type="button" data-edit-contact="${c.id}" class="px-2 py-1 rounded bg-slate-600 hover:bg-slate-500 text-white text-xs font-bold">✏️ এডিট</button>
+              ${c.due > 0 ? `<button type="button" data-sms-contact="${c.id}" class="px-2 py-1 rounded bg-emerald-600 text-white text-xs font-bold">📩 SMS</button><button type="button" data-settle-contact="${c.id}" class="px-2.5 py-1 rounded bg-cyan-600 text-white text-xs font-bold">বকেয়া পরিশোধ</button>` : '<span class="text-xs text-[var(--text-muted)] ml-1">ক্লিয়ার</span>'}
             </td>
           </tr>
         `).join('');
@@ -1584,6 +1936,27 @@
       document.getElementById('posVatToggle').addEventListener('change', () => updatePOSTotals(true));
       document.getElementById('posPaymentMethod').addEventListener('change', () => updatePOSTotals(true));
       document.getElementById('posPaidInput').addEventListener('input', () => updatePOSTotals(false));
+      document.getElementById('posEmiMonths').addEventListener('change', () => updatePOSTotals(false));
+      document.getElementById('posEmiDocsInput').addEventListener('change', async e => {
+        pendingEmiDocs = [];
+        const files = [...(e.target.files || [])].slice(0, 4);
+        for (const f of files) {
+          if (f.type.startsWith('image/')) {
+            const thumb = await new Promise(res => {
+              const r = new FileReader();
+              r.onload = () => res(r.result);
+              r.readAsDataURL(f);
+            });
+            pendingEmiDocs.push({ name: f.name, thumb });
+          } else {
+            pendingEmiDocs.push({ name: f.name, thumb: '' });
+          }
+        }
+        const listEl = document.getElementById('posEmiDocsList');
+        if (listEl) {
+          listEl.innerHTML = pendingEmiDocs.map(d => `<span class="px-2 py-0.5 rounded bg-slate-800 text-cyan-300 text-[10px] border border-cyan-500/30">📎 ${d.name}</span>`).join('');
+        }
+      });
       document.getElementById('posClearCartBtn').addEventListener('click', () => { cart = []; renderPOSCart(); });
       document.getElementById('posCompleteSaleBtn').addEventListener('click', completeSale);
 
@@ -1679,28 +2052,241 @@
       document.getElementById('salesSearchInput').addEventListener('input', renderSalesTable);
       document.getElementById('salesStatusFilter').addEventListener('change', renderSalesTable);
 
+      function showMoneyReceipt(info) {
+        currentReceiptSale = {
+          id: info.receiptNo,
+          date: info.date,
+          customerId: info.customerId || '',
+          customerName: info.customerName,
+          method: info.method,
+          items: [{ name: info.desc, qty: 1, price: info.amount }],
+          subtotal: info.amount,
+          discount: 0,
+          vat: 0,
+          total: info.amount,
+          paid: info.amount,
+          due: info.remainingDue
+        };
+        const html = `
+          <div class="border-b-2 border-slate-800 pb-3 mb-3 flex items-start justify-between gap-3">
+            <div class="flex items-center gap-2.5">
+              <div class="w-10 h-10 rounded-lg bg-slate-900 border border-amber-500 flex items-center justify-center shrink-0">
+                <span class="font-extrabold text-sm text-amber-400">SR</span>
+              </div>
+              <div>
+                <div class="text-base font-extrabold text-slate-900 leading-tight">SR Electronics Park</div>
+                <div class="text-[11px] font-semibold text-slate-700">An Enterprise of Salsabilah Amin Limited</div>
+                <div class="text-[10px] text-slate-600">Salsabilah Sovereign Singularity, Hatboalia Bazar, Alamdanga, Chuadanga-7210 • Mobile: 01719732134 • WhatsApp: 01711995940 • Web: salsabilahelectronics.com<br/>TIN: 849302140593 • BIN: 003948211-0201 • Authorized Dealer: Minister/MyOne (DEAL002905) & Butterfly/LG/ECO+ (3000002272)</div>
+              </div>
+            </div>
+            <div class="text-right text-[11px]">
+              <div class="font-extrabold text-emerald-700 uppercase tracking-wide">MONEY RECEIPT</div>
+              <div>রিসিট: <strong>${info.receiptNo}</strong></div>
+              <div>তারিখ: ${info.date}</div>
+            </div>
+          </div>
+          <div class="bg-slate-100 p-3 rounded-lg mb-3 text-xs space-y-1.5">
+            <div><span class="text-slate-500">গ্রহণ করা হলো (Received From):</span> <strong>${info.customerName}</strong> (${info.phone || '-'})</div>
+            <div><span class="text-slate-500">পেমেন্ট মাধ্যম:</span> <strong>${info.method}</strong> ${info.ref ? `• <span class="text-slate-600">Ref/TrxID: <strong>${info.ref}</strong></span>` : ''}</div>
+            <div><span class="text-slate-500">বিবরণ:</span> ${info.desc}</div>
+          </div>
+          <div class="border border-slate-300 rounded-lg p-3 text-xs space-y-1.5">
+            <div class="flex justify-between"><span>পূর্ববর্তী বকেয়া:</span><strong>${fmt(info.prevDue)}</strong></div>
+            <div class="flex justify-between text-sm font-extrabold text-emerald-700 border-y border-slate-200 py-1.5"><span>জমা প্রাপ্তি (Received):</span><span>${fmt(info.amount)}</span></div>
+            <div class="flex justify-between"><span>অবশিষ্ট বকেয়া (Balance Due):</span><strong class="${info.remainingDue > 0 ? 'text-rose-700' : 'text-emerald-700'}">${fmt(info.remainingDue)}</strong></div>
+          </div>
+          <div class="grid grid-cols-2 gap-6 pt-8 pb-2 text-center text-[10px] text-slate-600">
+            <div class="border-t border-slate-400 pt-1">জমাদানকারীর স্বাক্ষর</div>
+            <div class="border-t border-slate-400 pt-1">গ্রহণকারীর স্বাক্ষর (SR Electronics Park)</div>
+          </div>
+          <div class="text-center text-[10px] text-slate-500 border-t border-slate-200 pt-2 mt-2">
+            Salsabilah Sovereign Singularity (Powered by Gemini)
+          </div>
+        `;
+        document.getElementById('receiptPrintArea').innerHTML = html;
+        openModal('receiptModal');
+      }
+
       function handleCollectSale(saleId) {
         const s = state.sales.find(x => x.id === saleId);
         if (!s || s.due <= 0) return;
-        askConfirm('বকেয়া আদায়', `${s.id} (${s.customerName})-এর সম্পূর্ণ বকেয়া ${fmt(s.due)} আদায় হিসেবে চিহ্নিত করবেন?`, () => {
-          const c = state.contacts.find(x => x.id === s.customerId);
-          if (c) c.due = Math.max(0, (c.due || 0) - s.due);
-          s.paid += s.due;
-          s.due = 0;
+        document.getElementById('recPayMode').value = 'sale';
+        document.getElementById('recPayTargetId').value = s.id;
+        document.getElementById('recPayCustomerLabel').textContent = `${s.customerName} (${s.id})`;
+        document.getElementById('recPayDueLabel').textContent = fmt(s.due);
+        document.getElementById('recPayAmount').value = s.due;
+        document.getElementById('recPayAmount').max = s.due;
+        document.getElementById('recPayRef').value = '';
+        openModal('receivePayModal');
+      }
+
+      document.getElementById('receivePayForm').addEventListener('submit', e => {
+        e.preventDefault();
+        const mode = document.getElementById('recPayMode').value;
+        const tid = document.getElementById('recPayTargetId').value;
+        const amt = Number(document.getElementById('recPayAmount').value || 0);
+        const method = document.getElementById('recPayMethod').value;
+        const ref = document.getElementById('recPayRef').value.trim();
+        if (amt <= 0) return showToast('সঠিক টাকা লিখুন!', 'error');
+        const today = new Date().toISOString().slice(0, 10);
+        const rNo = 'MR-' + String(Date.now()).slice(-6);
+        if (mode === 'sale') {
+          const s = state.sales.find(x => x.id === tid);
+          if (!s) return;
+          const prevDue = Number(s.due || 0);
+          const payAmt = Math.min(amt, prevDue);
+          s.paid = Number(s.paid || 0) + payAmt;
+          s.due = Math.max(0, prevDue - payAmt);
+          const c = state.contacts.find(x => x.id === s.customerId || x.name === s.customerName);
+          if (c) c.due = Math.max(0, Number(c.due || 0) - payAmt);
           saveState();
+          closeModal('receivePayModal');
           renderDashboard();
           renderSalesTable();
-          showToast('বকেয়া আদায় সম্পন্ন হয়েছে!');
+          renderContactsTable();
+          showMoneyReceipt({ receiptNo: rNo, date: today, customerId: s.customerId, customerName: s.customerName, phone: c?.phone, method, ref, desc: `ইনভয়েস ${s.id}-এর বকেয়া আদায়`, prevDue, amount: payAmt, remainingDue: s.due });
+        } else if (mode === 'contact') {
+          const c = state.contacts.find(x => x.id === tid);
+          if (!c) return;
+          const prevDue = Number(c.due || 0);
+          const payAmt = Math.min(amt, prevDue);
+          c.due = Math.max(0, prevDue - payAmt);
+          saveState();
+          closeModal('receivePayModal');
+          renderDashboard();
+          renderContactsTable();
+          showMoneyReceipt({ receiptNo: rNo, date: today, customerId: c.id, customerName: c.name, phone: c.phone, method, ref, desc: 'কাস্টমার লেজার বকেয়া আদায়', prevDue, amount: payAmt, remainingDue: c.due });
+        }
+      });
+
+      document.getElementById('openCompanyPadBtn').addEventListener('click', () => {
+        document.getElementById('padRefNo').value = 'SREP/PO/' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-01';
+        openModal('companyPadModal');
+      });
+
+      document.getElementById('companyPadForm').addEventListener('submit', e => {
+        e.preventDefault();
+        const toComp = document.getElementById('padCompanySelect').value;
+        const refNo = document.getElementById('padRefNo').value.trim();
+        const subj = document.getElementById('padSubject').value.trim();
+        const rawLines = document.getElementById('padItemsText').value.trim().split('\n').filter(Boolean);
+        const rows = rawLines.map((ln, i) => {
+          const parts = ln.split('|').map(x => x.trim());
+          return { sl: i + 1, name: parts[0] || ln, qty: parts[1] || '1', note: parts[2] || '-' };
         });
+        const today = new Date().toISOString().slice(0, 10);
+        currentReceiptSale = {
+          id: refNo,
+          date: today,
+          customerName: toComp,
+          method: 'Purchase Order',
+          items: rows.map(r => ({ name: r.name, qty: Number(r.qty) || 1, price: 0 })),
+          subtotal: 0, discount: 0, vat: 0, total: 0, paid: 0, due: 0
+        };
+        const padHtml = `
+          <div class="border-b-2 border-slate-900 pb-3 mb-4 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-xl bg-slate-950 border-2 border-amber-500 flex items-center justify-center shrink-0">
+                <span class="font-extrabold text-lg text-amber-400">SR</span>
+              </div>
+              <div>
+                <div class="text-lg font-extrabold text-slate-900 leading-tight">SR Electronics Park</div>
+                <div class="text-xs font-bold text-slate-700">An Enterprise of Salsabilah Amin Limited</div>
+                <div class="text-[11px] text-slate-600">Salsabilah Sovereign Singularity, Hatboalia Bazar, Alamdanga, Chuadanga-7210 • Mobile: 01719732134 • WhatsApp: 01711995940 • Web: salsabilahelectronics.com<br/>Corporate TIN: 849302140593 • BIN: 003948211-0201 • Dealer IDs: DEAL002905 / 3000002272</div>
+              </div>
+            </div>
+            <div class="text-right text-[11px]">
+              <div class="font-extrabold uppercase text-cyan-800">OFFICIAL ORDER PAD</div>
+              <div>Ref: <strong>${refNo}</strong></div>
+              <div>Date: ${today}</div>
+            </div>
+          </div>
+          <div class="mb-3 text-xs space-y-1">
+            <div><span class="text-slate-500">To:</span> <strong>${toComp}</strong></div>
+            <div><span class="text-slate-500">Subject:</span> <strong>${subj}</strong></div>
+          </div>
+          <table class="w-full border border-slate-400 text-left text-xs mb-6">
+            <thead>
+              <tr class="bg-slate-100 border-b border-slate-400">
+                <th class="py-2 px-2 border-r border-slate-300 w-10">#</th>
+                <th class="py-2 px-2 border-r border-slate-300">Product / Model Description</th>
+                <th class="py-2 px-2 border-r border-slate-300 text-center w-20">Qty</th>
+                <th class="py-2 px-2">Remarks / Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(r => `<tr class="border-b border-slate-200"><td class="py-2 px-2 border-r border-slate-200">${r.sl}</td><td class="py-2 px-2 border-r border-slate-200 font-semibold">${r.name}</td><td class="py-2 px-2 border-r border-slate-200 text-center font-bold">${r.qty}</td><td class="py-2 px-2">${r.note}</td></tr>`).join('')}
+            </tbody>
+          </table>
+          <div class="flex justify-end pt-10 pb-2 text-center text-xs">
+            <div class="border-t border-slate-800 pt-1.5 px-6">
+              <div class="font-bold text-slate-900">MD. AL AMIN SOHAG</div>
+              <div class="text-[10px] text-slate-600">Founder, Managing Director &amp; CEO • SR Electronics Park / Salsabilah Amin Limited</div>
+            </div>
+          </div>
+          <div class="text-center text-[10px] text-slate-500 border-t border-slate-200 pt-2 mt-3">
+            Salsabilah Sovereign Singularity (Powered by Gemini)
+          </div>
+        `;
+        closeModal('companyPadModal');
+        document.getElementById('receiptPrintArea').innerHTML = padHtml;
+        openModal('receiptModal');
+      });
+
+      function updateEditSaleDuePreview() {
+        const t = Number(document.getElementById('editSaleTotal').value || 0);
+        const p = Number(document.getElementById('editSalePaid').value || 0);
+        document.getElementById('editSaleDuePreview').textContent = fmt(Math.max(0, t - p));
       }
+      ['editSaleTotal', 'editSalePaid'].forEach(id => {
+        document.getElementById(id).addEventListener('input', updateEditSaleDuePreview);
+      });
+      document.getElementById('editSaleForm').addEventListener('submit', e => {
+        e.preventDefault();
+        const sid = document.getElementById('editSaleOrigId').value;
+        const s = state.sales.find(x => x.id === sid);
+        if (!s) return;
+        const oldDue = Number(s.due || 0);
+        const newTotal = Math.max(0, Number(document.getElementById('editSaleTotal').value || 0));
+        const newPaid = Math.max(0, Number(document.getElementById('editSalePaid').value || 0));
+        const newDue = Math.max(0, newTotal - newPaid);
+        s.date = document.getElementById('editSaleDate').value || s.date;
+        s.customerName = document.getElementById('editSaleCustomer').value.trim() || s.customerName;
+        s.method = document.getElementById('editSaleMethod').value || s.method;
+        s.total = newTotal;
+        s.paid = newPaid;
+        s.due = newDue;
+        const c = state.contacts.find(x => x.id === s.customerId || x.name === s.customerName);
+        if (c) c.due = Math.max(0, Number(c.due || 0) + (newDue - oldDue));
+        saveState();
+        closeModal('editSaleModal');
+        renderSalesTable();
+        renderContactsTable();
+        renderDashboard();
+        showToast(`ইনভয়েস ${s.id} আপডেট হয়েছে!`);
+      });
 
       document.getElementById('salesTableBody').addEventListener('click', e => {
         const vs = e.target.closest('[data-view-sale]');
         const cs = e.target.closest('[data-collect-sale]');
         const ss = e.target.closest('[data-sms-sale]');
+        const es = e.target.closest('[data-edit-sale]');
         if (vs) {
           const s = state.sales.find(x => x.id === vs.dataset.viewSale);
           if (s) showReceipt(s);
+        } else if (es) {
+          const s = state.sales.find(x => x.id === es.dataset.editSale);
+          if (!s) return;
+          document.getElementById('editSaleOrigId').value = s.id;
+          document.getElementById('editSaleIdView').value = s.id;
+          document.getElementById('editSaleDate').value = s.date || '';
+          document.getElementById('editSaleCustomer').value = s.customerName || '';
+          const mSel = document.getElementById('editSaleMethod');
+          if ([...mSel.options].some(o => o.value === s.method)) mSel.value = s.method;
+          document.getElementById('editSaleTotal').value = s.total || 0;
+          document.getElementById('editSalePaid').value = s.paid || 0;
+          updateEditSaleDuePreview();
+          openModal('editSaleModal');
         } else if (ss) {
           const s = state.sales.find(x => x.id === ss.dataset.smsSale);
           if (s) openSmsForSale(s);
@@ -1769,32 +2355,64 @@
         contactFilterType = b.dataset.ctype;
         renderContactsTable();
       }));
-      document.getElementById('openAddContactBtn').addEventListener('click', () => {
+      function openNewContactModal(defaultType) {
         document.getElementById('contactForm').reset();
+        document.getElementById('conEditId').value = '';
+        document.getElementById('conDue').value = 0;
+        if (defaultType) document.getElementById('conType').value = defaultType;
+        document.getElementById('contactModalTitle').textContent = 'নতুন গ্রাহক / সরবরাহকারী';
+        document.getElementById('contactSubmitBtn').textContent = 'যোগ করুন';
         openModal('contactModal');
-      });
-      document.getElementById('posQuickAddCustomerBtn').addEventListener('click', () => {
-        document.getElementById('contactForm').reset();
-        document.getElementById('conType').value = 'customer';
-        openModal('contactModal');
-      });
+      }
+      document.getElementById('openAddContactBtn').addEventListener('click', () => openNewContactModal(contactFilterType));
+      document.getElementById('posQuickAddCustomerBtn').addEventListener('click', () => openNewContactModal('customer'));
+
       document.getElementById('contactForm').addEventListener('submit', e => {
         e.preventDefault();
+        const editId = document.getElementById('conEditId').value;
         const type = document.getElementById('conType').value;
-        const c = {
-          id: 'c' + Date.now(),
-          type,
-          name: document.getElementById('conName').value.trim(),
-          phone: document.getElementById('conPhone').value.trim(),
-          address: document.getElementById('conAddr').value.trim(),
-          due: 0
-        };
-        state.contacts.push(c);
+        const name = document.getElementById('conName').value.trim();
+        const phone = document.getElementById('conPhone').value.trim();
+        const address = document.getElementById('conAddr').value.trim();
+        const group = document.getElementById('conGroup').value.trim();
+        const due = Math.max(0, Number(document.getElementById('conDue').value || 0));
+        if (editId) {
+          const existing = state.contacts.find(x => x.id === editId);
+          if (existing) {
+            existing.type = type;
+            existing.name = name;
+            existing.phone = phone;
+            existing.address = address;
+            existing.group = group;
+            existing.due = due;
+          }
+          showToast(`${name}-এর তথ্য আপডেট হয়েছে!`);
+        } else {
+          state.contacts.push({ id: 'c' + Date.now(), type, name, phone, address, group, due });
+          showToast('নতুন কন্টাক্ট যোগ হয়েছে!');
+        }
         saveState();
         closeModal('contactModal');
         renderContactsTable();
         renderPOS();
-        showToast('নতুন কন্টাক্ট যোগ হয়েছে!');
+        renderDashboard();
+      });
+
+      document.getElementById('contactsTableBody').addEventListener('click', e => {
+        const editBtn = e.target.closest('[data-edit-contact]');
+        if (!editBtn) return;
+        const c = state.contacts.find(x => x.id === editBtn.dataset.editContact);
+        if (!c) return;
+        document.getElementById('conEditId').value = c.id;
+        document.getElementById('conType').value = c.type || 'customer';
+        document.getElementById('conGroup').value = c.group || '';
+        document.getElementById('conName').value = c.name || '';
+        document.getElementById('conPhone').value = c.phone || '';
+        document.getElementById('conDue').value = c.due || 0;
+        document.getElementById('conAddr').value = c.address || '';
+        document.getElementById('contactModalTitle').textContent = '✏️ কন্টাক্ট তথ্য সংশোধন';
+        document.getElementById('contactSubmitBtn').textContent = 'আপডেট সেভ করুন';
+        openModal('contactModal');
       });
 
       document.getElementById('contactsTableBody').addEventListener('click', e => {
@@ -1802,12 +2420,14 @@
         if (!btn) return;
         const c = state.contacts.find(x => x.id === btn.dataset.settleContact);
         if (!c || c.due <= 0) return;
-        askConfirm('বকেয়া নিষ্পত্তি', `${c.name}-এর সম্পূর্ণ বকেয়া ${fmt(c.due)} পরিশোধিত হিসেবে সেভ করবেন?`, () => {
-          c.due = 0;
-          saveState();
-          renderContactsTable();
-          showToast('বকেয়া পরিশোধ সম্পন্ন হয়েছে!');
-        });
+        document.getElementById('recPayMode').value = 'contact';
+        document.getElementById('recPayTargetId').value = c.id;
+        document.getElementById('recPayCustomerLabel').textContent = `${c.name} (${c.phone || '-'})`;
+        document.getElementById('recPayDueLabel').textContent = fmt(c.due);
+        document.getElementById('recPayAmount').value = c.due;
+        document.getElementById('recPayAmount').max = c.due;
+        document.getElementById('recPayRef').value = '';
+        openModal('receivePayModal');
       });
 
       // Exports & Backups
@@ -1981,6 +2601,23 @@
         openModal('smsModal');
       }
 
+      document.getElementById('openReceiptWaBtn').addEventListener('click', () => {
+        if (!currentReceiptSale) return;
+        const s = currentReceiptSale;
+        const custObj = state.contacts.find(c => c.id === s.customerId || c.name === s.customerName) || {};
+        const rawPhone = (custObj.phone || '').replace(/\D/g, '');
+        const waPhone = rawPhone ? (rawPhone.startsWith('88') ? rawPhone : '88' + rawPhone) : '8801711995940';
+        const lines = [
+          '*SR Electronics Park* (An Enterprise of Salsabilah Amin Limited)',
+          `ইনভয়েস: *${s.id}* | তারিখ: ${s.date}`,
+          `গ্রাহক: ${s.customerName}`,
+          ...s.items.map((i, idx) => `${idx + 1}. ${i.name} x${i.qty} = ${fmt(i.price * i.qty)}`),
+          `সর্বমোট: *${fmt(s.total)}* | জমা: ${fmt(s.paid)} | বাকি: *${fmt(s.due)}*`,
+          'Business WhatsApp: 01711995940 • Powered by Gemini'
+        ];
+        window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(lines.join('\n'))}`, '_blank');
+      });
+
       document.getElementById('openReceiptSmsBtn').addEventListener('click', () => {
         if (currentReceiptSale) openSmsForSale(currentReceiptSale);
       });
@@ -2078,6 +2715,154 @@
         } catch (err) {
           showToast('গেটওয়েতে পাঠানো যায়নি; ফোন SMS বা কপি ব্যবহার করুন', 'error');
         }
+      });
+
+      // Ask Gemini (Product & EMI Assistant)
+      function appendGeminiMsg(sender, text, isUser = false) {
+        const box = document.getElementById('askGeminiChatBox');
+        if (!box) return;
+        const div = document.createElement('div');
+        div.className = isUser
+          ? 'p-2.5 rounded-lg bg-amber-500/20 border border-amber-500/30 text-right ml-8'
+          : 'p-2.5 rounded-lg bg-blue-600/20 border border-blue-500/30 mr-6 leading-relaxed';
+        div.innerHTML = `<div class="text-[10px] font-bold ${isUser ? 'text-amber-300' : 'text-cyan-300'} mb-0.5">${sender}</div><div>${text}</div>`;
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+      }
+
+      function answerGeminiQuery(q) {
+        const ql = q.toLowerCase();
+        if (ql.includes('emi') || ql.includes('কিস্তি') || ql.includes('লক') || ql.includes('sms')) {
+          const emiSales = state.sales.filter(s => s.method === 'EMI' || s.emi);
+          return `<strong>SR Electronics Park EMI পলিসি:</strong><br/>১) কিস্তির তারিখের আগে জেমিনি স্বয়ংক্রিয়ভাবে <strong>SALSABILAH</strong> থেকে SMS রিমাইন্ডার পাঠাবে।<br/>২) কিস্তি মিস হলে <strong>কোনো প্রোডাক্ট ব্যবহারযোগ্য থাকবে না (ব্যবহার-অযোগ্য/লক)</strong>।<br/>৩) বর্তমানে সক্রিয় EMI বিক্রয়: <strong>${emiSales.length}টি</strong>।`;
+        }
+        const matches = state.products.filter(p => p.name.toLowerCase().includes(ql) || p.sku.toLowerCase().includes(ql) || (p.category || '').toLowerCase().includes(ql) || (p.brand || '').toLowerCase().includes(ql)).slice(0, 4);
+        if (matches.length) {
+          return matches.map(p => `• <strong>${p.name}</strong> (${p.sku}) — বিক্রয় মূল্য: <strong>${fmt(p.price)}</strong>, স্টক: <strong>${p.stock}</strong>, ওয়ারেন্টি: ${p.warranty}`).join('<br/>');
+        }
+        const invMatch = state.sales.find(s => s.id.toLowerCase() === ql || s.customerName.toLowerCase().includes(ql));
+        if (invMatch) {
+          return `ইনভয়েস <strong>${invMatch.id}</strong> (${invMatch.customerName}): মোট <strong>${fmt(invMatch.total)}</strong>, জমা ${fmt(invMatch.paid)}, বাকি <strong>${fmt(invMatch.due)}</strong> (${invMatch.method})।`;
+        }
+        return `দুঃখিত, "${q}" নামে সরাসরি কোনো পণ্য পাওয়া যায়নি। পণ্যের মডেল (যেমন: Minister, ECO+, LG, TV, Refrigerator) বা "EMI" লিখে জিজ্ঞাসা করুন।`;
+      }
+
+      document.getElementById('askGeminiOpenBtn').addEventListener('click', () => openModal('askGeminiModal'));
+      document.getElementById('openReceiptAskGeminiBtn').addEventListener('click', () => openModal('askGeminiModal'));
+      document.getElementById('askGeminiForm').addEventListener('submit', e => {
+        e.preventDefault();
+        const inp = document.getElementById('askGeminiInput');
+        const q = inp.value.trim();
+        if (!q) return;
+        appendGeminiMsg('আপনি', q, true);
+        inp.value = '';
+        appendGeminiMsg('✨ Gemini', answerGeminiQuery(q), false);
+      });
+      document.getElementById('sendAllEmiRemindersBtn').addEventListener('click', () => {
+        const dues = state.sales.filter(s => s.due > 0 && (s.method === 'EMI' || s.emi));
+        if (!dues.length) {
+          const anyDue = state.sales.find(s => s.due > 0);
+          if (anyDue) { closeModal('askGeminiModal'); openSmsForSale(anyDue); return; }
+          return showToast('কোনো বকেয়া EMI কিস্তি নেই!', 'success');
+        }
+        closeModal('askGeminiModal');
+        openSmsForSale(dues[0]);
+        showToast(`${dues.length}টি EMI কিস্তির জন্য SALSABILAH SMS প্রস্তুত!`);
+      });
+
+      document.getElementById('dashDailyClosingBtn').addEventListener('click', () => {
+        const today = new Date().toISOString().slice(0, 10);
+        const todaySales = state.sales.filter(s => s.date === today);
+        const sTotal = todaySales.reduce((a, b) => a + (b.total || 0), 0);
+        const sPaid = todaySales.reduce((a, b) => a + (b.paid || 0), 0);
+        const sDue = todaySales.reduce((a, b) => a + (b.due || 0), 0);
+        const tExp = state.expenses.filter(e => e.date === today).reduce((a, b) => a + (b.amount || 0), 0);
+        const emiActive = state.sales.filter(s => (s.method === 'EMI' || s.emi) && s.due > 0).length;
+        const msg = [
+          '*SR Electronics Park — Daily Closing Report*',
+          `তারিখ: ${today}`,
+          `আজকের বিক্রয়: ${todaySales.length}টি (${fmt(sTotal)})`,
+          `নগদ/মার্চেন্ট আদায়: ${fmt(sPaid)}`,
+          `আজকের নতুন বাকি: ${fmt(sDue)}`,
+          `আজকের ব্যয়: ${fmt(tExp)}`,
+          `সক্রিয় EMI কিস্তি: ${emiActive}টি`,
+          'Salsabilah Sovereign Singularity (Powered by Gemini)'
+        ].join('\n');
+        window.open(`https://wa.me/8801711995940?text=${encodeURIComponent(msg)}`, '_blank');
+      });
+
+      document.getElementById('dashEmiWatchBody').addEventListener('click', e => {
+        const smsBtn = e.target.closest('[data-emi-sms]');
+        const lockBtn = e.target.closest('[data-emi-lock]');
+        if (smsBtn) {
+          const s = state.sales.find(x => x.id === smsBtn.dataset.emiSms);
+          if (s) openSmsForSale(s);
+        } else if (lockBtn) {
+          const s = state.sales.find(x => x.id === lockBtn.dataset.emiLock);
+          if (!s) return;
+          if (!s.emi) s.emi = { months: 6, monthlyInstallment: s.due };
+          s.emi.locked = !s.emi.locked;
+          saveState();
+          renderDashboard();
+          showToast(s.emi.locked ? `${s.id} প্রোডাক্ট লক (Non-Usable) হিসেবে চিহ্নিত!` : `${s.id} প্রোডাক্ট আনলক করা হয়েছে!`);
+        }
+      });
+
+      function answerInlineInvoiceQuery(q) {
+        const s = currentReceiptSale;
+        if (!s) return '';
+        const ql = (q || '').toLowerCase();
+        if (ql === 'warranty' || ql.includes('ওয়ারেন্টি') || ql.includes('warranty')) {
+          const itemDetails = (s.items || []).map(i => {
+            const prod = state.products.find(p => p.id === i.id || p.name === i.name);
+            return `• <strong>${i.name}</strong>: ${(prod && prod.warranty) ? prod.warranty : 'Official Brand Warranty'}`;
+          }).join('<br/>');
+          return `<strong>আপনার পণ্যের ওয়ারেন্টি তথ্য:</strong><br/>${itemDetails}<br/>ওয়ারেন্টি ক্লেইমের জন্য এই ইনভয়েস (${s.id}) সংরক্ষণ করুন।`;
+        }
+        if (ql === 'emi' || ql.includes('emi') || ql.includes('কিস্তি') || ql.includes('লক')) {
+          if (s.emi) {
+            return `<strong>EMI বিবরণ (${s.id}):</strong> মেয়াদ ${s.emi.months} মাস, মাসিক কিস্তি <strong>${fmt(s.emi.monthlyInstallment)}</strong>। কিস্তির তারিখের আগে <strong>SALSABILAH</strong> থেকে SMS পাঠানো হবে; কিস্তি মিস হলে প্রোডাক্ট ব্যবহার-অযোগ্য (লক) হয়ে যাবে।`;
+          }
+          return `<strong>EMI পলিসি:</strong> কিস্তিতে ক্রয়ে প্রতি মাসে <strong>SALSABILAH</strong> থেকে অগ্রিম SMS পাঠানো হয় এবং কিস্তি মিস হলে ডিভাইস ব্যবহার-অযোগ্য হয়ে যায়।`;
+        }
+        if (ql === 'pay' || ql.includes('পেমেন্ট') || ql.includes('বিকাশ') || ql.includes('ব্যাংক')) {
+          return `<strong>অনুমোদিত পেমেন্ট মাধ্যম:</strong> Pubali Bank POS (MID: 474370027951000), DBBL Corporate, BRAC Bank (Alamdanga), bKash/Nagad Merchant, অথবা শোরুম নগদ। সহায়তার জন্য WhatsApp: <strong>01711995940</strong>।`;
+        }
+        return answerGeminiQuery(q);
+      }
+
+      document.getElementById('receiptPrintArea').addEventListener('click', e => {
+        const qBtn = e.target.closest('[data-inv-q]');
+        const sendBtn = e.target.closest('#invGeminiSendBtn');
+        const ansEl = document.getElementById('invGeminiAnswer');
+        if (qBtn && ansEl) {
+          ansEl.innerHTML = answerInlineInvoiceQuery(qBtn.dataset.invQ);
+        } else if (sendBtn && ansEl) {
+          const inp = document.getElementById('invGeminiInput');
+          const txt = (inp && inp.value || '').trim();
+          if (txt) {
+            ansEl.innerHTML = answerInlineInvoiceQuery(txt);
+            inp.value = '';
+          }
+        }
+      });
+
+      document.getElementById('downloadDigitalInvBtn').addEventListener('click', () => {
+        if (!currentReceiptSale) return;
+        const s = currentReceiptSale;
+        const clone = document.getElementById('receiptPrintArea').cloneNode(true);
+        const itemsJson = JSON.stringify((s.items || []).map(i => {
+          const p = state.products.find(x => x.id === i.id || x.name === i.name);
+          return { name: i.name, qty: i.qty, price: i.price, warranty: (p && p.warranty) || 'Official Warranty' };
+        }));
+        const emiJson = JSON.stringify(s.emi || null);
+        const standaloneHtml = `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>Invoice ${s.id} — SR Electronics Park</title><script src="https://cdn.tailwindcss.com/3.4.17"><\/script></head><body class="bg-slate-100 p-3 sm:p-6"><div class="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-4 sm:p-6">${clone.innerHTML}</div><script>const ITEMS=${itemsJson};const EMI=${emiJson};function reply(q){const ql=(q||'').toLowerCase();if(ql==='warranty'||ql.includes('ওয়ারেন্টি')||ql.includes('warranty'))return ITEMS.map(i=>'• <b>'+i.name+'</b>: '+i.warranty).join('<br/>');if(ql==='emi'||ql.includes('emi')||ql.includes('কিস্তি'))return EMI?'মেয়াদ: '+EMI.months+' মাস, মাসিক কিস্তি: ৳'+EMI.monthlyInstallment+'। কিস্তির আগে SALSABILAH SMS যাবে; কিস্তি মিস হলে প্রোডাক্ট ব্যবহার-অযোগ্য থাকবে।':'কিস্তির আগে SALSABILAH SMS যাবে এবং কিস্তি মিস হলে প্রোডাক্ট ব্যবহার-অযোগ্য থাকবে।';if(ql==='pay'||ql.includes('পেমেন্ট'))return 'Pubali POS (MID: 474370027951000), DBBL, BRAC Bank, bKash/Nagad Merchant। WhatsApp: 01711995940';return 'পণ্যের ওয়ারেন্টি, EMI বা পেমেন্ট লিখে জিজ্ঞাসা করুন অথবা WhatsApp করুন: 01711995940';}document.querySelectorAll('[data-inv-q]').forEach(b=>b.onclick=()=>{document.getElementById('invGeminiAnswer').innerHTML=reply(b.dataset.invQ);});const sb=document.getElementById('invGeminiSendBtn');if(sb)sb.onclick=()=>{const i=document.getElementById('invGeminiInput');if(i&&i.value.trim()){document.getElementById('invGeminiAnswer').innerHTML=reply(i.value.trim());i.value='';}};<\/script></body></html>`;
+        const blob = new Blob([standaloneHtml], { type: 'text/html;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `Invoice_${s.id}_SR_Electronics_Park.html`;
+        a.click();
+        showToast(`ডিজিটাল ইনভয়েস (${s.id}) ডাউনলোড হয়েছে!`);
       });
 
       // Init
